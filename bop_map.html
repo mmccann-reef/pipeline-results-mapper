@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BOP Restoration Sites — Larval Transport Model</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #16213e;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 2px solid #0f3460;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      letter-spacing: 0.02em;
+    }
+
+    header p {
+      font-size: 0.78rem;
+      color: #8899aa;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.73rem;
+      color: #aabbcc;
+    }
+
+    .legend-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      flex-shrink: 0;
+    }
+
+    #map {
+      flex: 1;
+    }
+
+    /* ── Modal overlay ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.active {
+      display: flex;
+    }
+
+    #modal {
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 10px;
+      width: min(680px, 95vw);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+
+    #modal-header {
+      padding: 14px 18px;
+      background: #0f3460;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    #modal-meta {
+      font-size: 0.75rem;
+      color: #8899bb;
+      margin-top: 2px;
+    }
+
+    #modal-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.3rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    #modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* Year selector tabs */
+    #year-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 18px;
+      background: #1a2a4a;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    .year-btn {
+      background: #0f3460;
+      border: 1px solid #1a4a80;
+      color: #aabbcc;
+      padding: 6px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .year-btn:hover {
+      background: #1a4a80;
+      color: #fff;
+    }
+
+    .year-btn.active {
+      background: #2980b9;
+      border-color: #3498db;
+      color: #fff;
+    }
+
+    #modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    #image-container {
+      width: 100%;
+      text-align: center;
+    }
+
+    #site-image {
+      max-width: 100%;
+      max-height: 55vh;
+      border-radius: 6px;
+      border: 1px solid #0f3460;
+    }
+
+    #image-placeholder {
+      color: #556677;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    #image-placeholder .icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+    /* Leaflet popup tweaks */
+    .leaflet-popup-content-wrapper {
+      background: #16213e;
+      color: #e0e0e0;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    .leaflet-popup-tip { background: #16213e; }
+
+    .leaflet-popup-content {
+      margin: 10px 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .popup-title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .popup-meta { color: #8899aa; margin-bottom: 8px; }
+
+    .popup-btn {
+      display: inline-block;
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      margin-top: 2px;
+    }
+
+    .popup-btn:hover { background: #3498db; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🦪 BOP Restoration Sites — Larval Transport Model Output</h1>
+    <p>Click any site marker to view model output images for 1993, 1995, and 1998</p>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div> Installed</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div> Design</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div> Proposed Future</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div> Potential Wild</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7f8c8d"></div> To Be Retired</div>
+  </div>
+</header>
+
+<div id="map"></div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-header">
+      <div>
+        <div id="modal-title">Site Name</div>
+        <div id="modal-meta">Waterbody · Status · Acres</div>
+      </div>
+      <button id="modal-close" title="Close">✕</button>
+    </div>
+    <div id="year-tabs">
+      <button class="year-btn active" data-year="1993">1993</button>
+      <button class="year-btn" data-year="1995">1995</button>
+      <button class="year-btn" data-year="1998">1998</button>
+    </div>
+    <div id="modal-body">
+      <div id="image-container">
+        <img id="site-image" src="" alt="Model output" style="display:none;" />
+        <div id="image-placeholder">
+          <div class="icon">🗺️</div>
+          <div>Select a year above to view model output</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ── Site data ────────────────────────────────────────────────────────────────
+// NOTE: lat/lon columns in the source CSV were swapped — corrected here.
+const sites = [
+  {id:1,  name:"Piermont - North",              status:"Proposed Future Site", waterbody:"Hudson River",                    acres:260.4, lat:41.05676, lon:-73.9009},
+  {id:2,  name:"Piermont - South",              status:"Proposed Future Site", waterbody:"Hudson River",                    acres:143.4, lat:41.02931, lon:-73.8931},
+  {id:3,  name:"Williamsburg River Ring",        status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:15.3,  lat:40.71829, lon:-73.9668},
+  {id:4,  name:"Bergen Basin",                  status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:5.1,   lat:40.64901, lon:-73.8251},
+  {id:5,  name:"Jamaica Bay Park 1",            status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:7.3,   lat:40.61329, lon:-73.7657},
+  {id:6,  name:"Jamaica Bay Park 2",            status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:25.7,  lat:40.61937, lon:-73.7674},
+  {id:7,  name:"Alley Creek",                   status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:11.3,  lat:40.76797, lon:-73.7581},
+  {id:8,  name:"Little Neck Bay",               status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:83.1,  lat:40.77393, lon:-73.7621},
+  {id:9,  name:"Joe Michael Mile",              status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:108.5, lat:40.78405, lon:-73.7695},
+  {id:10, name:"Hart Island",                   status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:30.3,  lat:40.85828, lon:-73.7737},
+  {id:11, name:"Orchard Beach",                 status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:21.7,  lat:40.87486, lon:-73.7807},
+  {id:12, name:"Orchard Beach",                 status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:9.5,   lat:40.87475, lon:-73.7841},
+  {id:13, name:"Orchard Beach",                 status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:35.0,  lat:40.87856, lon:-73.7826},
+  {id:14, name:"Fort Totten",                   status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:17.1,  lat:40.79203, lon:-73.7727},
+  {id:15, name:"Fort Totten",                   status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:3.0,   lat:40.79533, lon:-73.7826},
+  {id:16, name:"Fort Totten",                   status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:2.0,   lat:40.79462, lon:-73.7828},
+  {id:17, name:"Brooklyn Marine Park",          status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:2.4,   lat:40.58776, lon:-73.9156},
+  {id:18, name:"Brooklyn Marine Park",          status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:12.0,  lat:40.59001, lon:-73.913},
+  {id:19, name:"Brooklyn Marine Park",          status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:11.1,  lat:40.60062, lon:-73.9222},
+  {id:20, name:"Lemon Creek",                   status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:3.5,   lat:40.51672, lon:-74.2005},
+  {id:21, name:"Malba",                         status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:6.0,   lat:40.7921,  lon:-73.8298},
+  {id:22, name:"Barbadoes Basin",               status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:9.9,   lat:40.59254, lon:-73.8066},
+  {id:23, name:"Bayswater Park - HPD",          status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:15.2,  lat:40.60179, lon:-73.7713},
+  {id:24, name:"Bayswater Park - NYC Parks",    status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:9.6,   lat:40.59922, lon:-73.7715},
+  {id:25, name:"Conch Basin",                   status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:24.3,  lat:40.59918, lon:-73.78},
+  {id:26, name:"Arthur Kill",                   status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:2.5,   lat:40.59814, lon:-74.1975},
+  {id:27, name:"Arthur Kill",                   status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:5.1,   lat:40.59505, lon:-74.1989},
+  {id:28, name:"Arthur Kill",                   status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:15.2,  lat:40.51992, lon:-74.2414},
+  {id:29, name:"Arthur Kill - Pralls River",    status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:6.0,   lat:40.60893, lon:-74.1984},
+  {id:30, name:"Arthur Kill - Pralls River",    status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:20.2,  lat:40.61286, lon:-74.1966},
+  {id:31, name:"Wolfe's Pond",                  status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:8.6,   lat:40.51415, lon:-74.1903},
+  {id:32, name:"Save the Sound Big Rock",       status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:2.1,   lat:40.7822,  lon:-73.7498},
+  {id:33, name:"Bush Terminal - USACE",         status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:13.3,  lat:40.65857, lon:-74.0169},
+  {id:34, name:"Bush Terminal - USACE",         status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:12.1,  lat:40.65785, lon:-74.0184},
+  {id:35, name:"Bush Terminal - USACE",         status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:10.7,  lat:40.65666, lon:-74.0189},
+  {id:36, name:"Bush Terminal - USACE",         status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:55.8,  lat:40.65469, lon:-74.023},
+  {id:37, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:2.0,   lat:40.49403, lon:-74.2462},
+  {id:38, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:2.5,   lat:40.4947,  lon:-74.2439},
+  {id:39, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:1.9,   lat:40.49494, lon:-74.2411},
+  {id:40, name:"Living Breakwaters",            status:"Installed",            waterbody:"Raritan Bay/Lower Harbor",        acres:2.1,   lat:40.49542, lon:-74.2392},
+  {id:41, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:3.8,   lat:40.49573, lon:-74.2367},
+  {id:42, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:2.0,   lat:40.49652, lon:-74.2352},
+  {id:43, name:"Living Breakwaters",            status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:3.2,   lat:40.49691, lon:-74.2328},
+  {id:44, name:"Little Bay Park",               status:"Proposed Future Site", waterbody:"Western Long Island Sound",       acres:26.1,  lat:40.79089, lon:-73.7871},
+  {id:45, name:"Head of Bay - USACE",           status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:23.2,  lat:40.62623, lon:-73.7605},
+  {id:46, name:"Head of Bay",                   status:"Installed",            waterbody:"Jamaica Bay",                     acres:2.6,   lat:40.62396, lon:-73.7624},
+  {id:47, name:"Shirley Chisholm State Park",   status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:20.4,  lat:40.64667, lon:-73.8565},
+  {id:48, name:"Shirley Chisholm State Park",   status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:34.4,  lat:40.6413,  lon:-73.8612},
+  {id:49, name:"Shirley Chisholm State Park",   status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:43.2,  lat:40.63602, lon:-73.87},
+  {id:50, name:"Fresh Creek Basin",             status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:8.5,   lat:40.6424,  lon:-73.8821},
+  {id:51, name:"Four Sparrow",                  status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:13.9,  lat:40.60308, lon:-73.9045},
+  {id:52, name:"Rockaway Community Park",       status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:53.5,  lat:40.60679, lon:-73.7786},
+  {id:53, name:"Dubos Point Wildlife Sanctuary",status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:49.7,  lat:40.60232, lon:-73.79},
+  {id:54, name:"Brant Point Wildlife Sanctuary",status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:15.2,  lat:40.59885, lon:-73.8033},
+  {id:55, name:"Vernam Barbadoes",              status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:10.8,  lat:40.59509, lon:-73.8077},
+  {id:56, name:"Bushwick Inlet",                status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:1.3,   lat:40.72564, lon:-73.9607},
+  {id:57, name:"Bushwick Inlet",                status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:2.2,   lat:40.72506, lon:-73.9588},
+  {id:58, name:"Little Brother Island South",   status:"Proposed Future Site", waterbody:"Upper Harbor",                    acres:11.6,  lat:40.79511, lon:-73.8983},
+  {id:59, name:"Yonkers - South",               status:"Proposed Future Site", waterbody:"Hudson River",                    acres:13.2,  lat:40.94958, lon:-73.9007},
+  {id:60, name:"Yonkers - North",               status:"Proposed Future Site", waterbody:"Hudson River",                    acres:79.8,  lat:40.9653,  lon:-73.8931},
+  {id:61, name:"Hastings-on-Hudson",            status:"Proposed Future Site", waterbody:"Hudson River",                    acres:14.9,  lat:40.98021, lon:-73.8882},
+  {id:62, name:"Dobbs Ferry",                   status:"Proposed Future Site", waterbody:"Hudson River",                    acres:52.7,  lat:41.01272, lon:-73.8816},
+  {id:63, name:"Irvington - South",             status:"Proposed Future Site", waterbody:"Hudson River",                    acres:105.9, lat:41.02742, lon:-73.8782},
+  {id:64, name:"Irvington - North",             status:"Proposed Future Site", waterbody:"Hudson River",                    acres:470.1, lat:41.05778, lon:-73.8729},
+  {id:65, name:"Great Kills Harbor",            status:"To Be Retired",        waterbody:"Raritan Bay/Lower Harbor",        acres:0.0,   lat:40.54339, lon:-74.1389},
+  {id:66, name:"Coney Island Creek",            status:"To Be Retired",        waterbody:"Raritan Bay/Lower Harbor",        acres:0.1,   lat:40.58055, lon:-73.9971},
+  {id:67, name:"Paerdegat Basin",               status:"Design",               waterbody:"Jamaica Bay",                     acres:9.4,   lat:40.62391, lon:-73.8992},
+  {id:68, name:"Paerdegat Basin",               status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:27.8,  lat:40.62274, lon:-73.9001},
+  {id:69, name:"Paerdegat Basin",               status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:24.9,  lat:40.62887, lon:-73.9104},
+  {id:70, name:"Paerdegat Basin",               status:"Proposed Future Site", waterbody:"Jamaica Bay",                     acres:27.2,  lat:40.62792, lon:-73.9101},
+  {id:71, name:"Bayswater State Park",          status:"To Be Retired",        waterbody:"Jamaica Bay",                     acres:0.3,   lat:40.61402, lon:-73.7717},
+  {id:72, name:"Bush Terminal Park",            status:"Installed",            waterbody:"Upper Harbor",                    acres:1.4,   lat:40.65395, lon:-74.0187},
+  {id:73, name:"Bush Terminal Park",            status:"Design",               waterbody:"Upper Harbor",                    acres:2.8,   lat:40.65469, lon:-74.0185},
+  {id:74, name:"Governors Island EcoDock",      status:"Installed",            waterbody:"Upper Harbor",                    acres:0.1,   lat:40.6915,  lon:-74.0123},
+  {id:75, name:"Governors Island Reef",         status:"Installed",            waterbody:"Upper Harbor",                    acres:1.3,   lat:40.68718, lon:-74.0143},
+  {id:76, name:"Brooklyn Bridge Park",          status:"Installed",            waterbody:"Upper Harbor",                    acres:1.4,   lat:40.69709, lon:-73.9999},
+  {id:77, name:"Brooklyn Bridge Park",          status:"Design",               waterbody:"Upper Harbor",                    acres:1.2,   lat:40.69728, lon:-74.0003},
+  {id:78, name:"Brooklyn Navy Yard",            status:"Installed",            waterbody:"Upper Harbor",                    acres:0.3,   lat:40.70392, lon:-73.9683},
+  {id:79, name:"Hudson River Park Trust",       status:"Installed",            waterbody:"Hudson River",                    acres:65.9,  lat:40.72373, lon:-74.0139},
+  {id:80, name:"Hudson River Park Trust",       status:"Installed",            waterbody:"Hudson River",                    acres:8.8,   lat:40.74124, lon:-74.0109},
+  {id:81, name:"Soundview",                     status:"Installed",            waterbody:"Western Long Island Sound",       acres:41.4,  lat:40.80888, lon:-73.8635},
+  {id:82, name:"SUNY Maritime",                 status:"Installed",            waterbody:"Western Long Island Sound",       acres:0.7,   lat:40.80522, lon:-73.7959},
+  {id:83, name:"Flushing Bay",                  status:"Design",               waterbody:"Western Long Island Sound",       acres:52.0,  lat:40.76658, lon:-73.8572},
+  {id:84, name:"Flushing Bay",                  status:"Design",               waterbody:"Western Long Island Sound",       acres:51.8,  lat:40.76254, lon:-73.8523},
+  {id:85, name:"Flushing Bay",                  status:"Design",               waterbody:"Western Long Island Sound",       acres:52.3,  lat:40.7642,  lon:-73.8464},
+  {id:86, name:"Powell's Cove",                 status:"Design",               waterbody:"Western Long Island Sound",       acres:34.7,  lat:40.79096, lon:-73.8348},
+  {id:87, name:"Pugsley Creek",                 status:"Design",               waterbody:"Western Long Island Sound",       acres:26.4,  lat:40.81087, lon:-73.8456},
+  {id:88, name:"Turtle Cove",                   status:"Design",               waterbody:"Western Long Island Sound",       acres:51.7,  lat:40.8572,  lon:-73.8065},
+  {id:89, name:"City Island",                   status:"Design",               waterbody:"Western Long Island Sound",       acres:2.5,   lat:40.84902, lon:-73.7916},
+  {id:90, name:"City Island",                   status:"Design",               waterbody:"Western Long Island Sound",       acres:2.7,   lat:40.84134, lon:-73.7809},
+  {id:91, name:"Manhasset Bay",                 status:"Potential Wild",        waterbody:"Western Long Island Sound",       acres:1571.7,lat:40.82319, lon:-73.7158},
+  {id:92, name:"Hempstead Harbor",              status:"Potential Wild",        waterbody:"Western Long Island Sound",       acres:1913.0,lat:40.84411, lon:-73.6593},
+  {id:93, name:"Oyster Bay",                    status:"Potential Wild",        waterbody:"Western Long Island Sound",       acres:4182.6,lat:40.89814, lon:-73.5136},
+  {id:94, name:"Tappan Zee",                    status:"Installed",            waterbody:"Hudson River",                    acres:4.7,   lat:41.11404, lon:-73.8747},
+  {id:95, name:"Tappan Zee",                    status:"Installed",            waterbody:"Hudson River",                    acres:6.4,   lat:41.04976, lon:-73.895},
+  {id:96, name:"Tappan Zee",                    status:"Installed",            waterbody:"Hudson River",                    acres:0.2,   lat:41.06043, lon:-73.8747},
+  {id:97, name:"Tappan Zee",                    status:"Installed",            waterbody:"Hudson River",                    acres:0.1,   lat:41.05985, lon:-73.8747},
+  {id:98, name:"Nyack",                         status:"Potential Wild",        waterbody:"Hudson River",                    acres:274.1, lat:41.07552, lon:-73.9073},
+  {id:99, name:"Ossining",                      status:"Potential Wild",        waterbody:"Hudson River",                    acres:185.7, lat:41.13858, lon:-73.8724},
+  {id:100,name:"Ossining",                      status:"Proposed Future Site", waterbody:"Hudson River",                    acres:146.2, lat:41.11407, lon:-73.8726},
+  {id:101,name:"Earle",                         status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",        acres:null,  lat:40.43739, lon:-74.0625}
+];
+
+// ── Color by status ──────────────────────────────────────────────────────────
+const statusColors = {
+  "Installed":            "#27ae60",
+  "Design":               "#2980b9",
+  "Proposed Future Site": "#f39c12",
+  "Potential Wild":       "#9b59b6",
+  "To Be Retired":        "#7f8c8d",
+  "To be retired":        "#7f8c8d"
+};
+
+function getColor(status) {
+  return statusColors[status] || "#e74c3c";
+}
+
+function makeMarker(site) {
+  const color = getColor(site.status);
+  return L.circleMarker([site.lat, site.lon], {
+    radius: 7,
+    fillColor: color,
+    color: "#fff",
+    weight: 1.5,
+    opacity: 1,
+    fillOpacity: 0.85
+  });
+}
+
+// ── Map init ─────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [40.72, -73.92],
+  zoom: 10
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  maxZoom: 19
+}).addTo(map);
+
+// ── Place markers ─────────────────────────────────────────────────────────────
+sites.forEach(site => {
+  const marker = makeMarker(site);
+  marker.addTo(map);
+
+  marker.bindPopup(`
+    <div class="popup-title">${site.name}</div>
+    <div class="popup-meta">
+      ${site.waterbody}<br>
+      ${site.status}${site.acres != null ? ' · ' + site.acres + ' ac' : ''}
+    </div>
+    <button class="popup-btn" onclick="openModal(${site.id})">
+      View Model Output →
+    </button>
+  `);
+});
+
+// ── Modal logic ───────────────────────────────────────────────────────────────
+let currentSiteId = null;
+let currentYear   = "1993";
+
+function openModal(siteId) {
+  currentSiteId = siteId;
+  const site = sites.find(s => s.id === siteId);
+
+  document.getElementById('modal-title').textContent =
+    `#${site.id} — ${site.name}`;
+  document.getElementById('modal-meta').textContent =
+    `${site.waterbody} · ${site.status}${site.acres != null ? ' · ' + site.acres + ' acres' : ''}`;
+
+  // Reset to first year
+  currentYear = "1993";
+  document.querySelectorAll('.year-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.year === currentYear);
+  });
+
+  loadImage();
+  document.getElementById('modal-overlay').classList.add('active');
+  map.closePopup();
+}
+
+function loadImage() {
+  const img = document.getElementById('site-image');
+  const placeholder = document.getElementById('image-placeholder');
+  const path = `images/HeatMap_Polygon_${currentSiteId}_${currentYear}.png`;
+
+  img.style.display = 'none';
+  placeholder.style.display = 'block';
+  placeholder.innerHTML = '<div class="icon">⏳</div><div>Loading...</div>';
+
+  img.onload = () => {
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+
+  img.onerror = () => {
+    img.style.display = 'none';
+    placeholder.innerHTML =
+      `<div class="icon">📂</div>
+       <div>Image not found:<br><code style="font-size:0.75rem;color:#aaa">${path}</code></div>`;
+    placeholder.style.display = 'block';
+  };
+
+  img.src = path;
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  currentSiteId = null;
+}
+
+// Year tab buttons
+document.querySelectorAll('.year-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentYear = btn.dataset.year;
+    document.querySelectorAll('.year-btn').forEach(b =>
+      b.classList.toggle('active', b === btn));
+    if (currentSiteId !== null) loadImage();
+  });
+});
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>
