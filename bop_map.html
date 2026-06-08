@@ -483,7 +483,7 @@ function openModal(siteId) {
 function loadImage() {
   const img = document.getElementById('site-image');
   const ph = document.getElementById('image-placeholder');
-  const path = `images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.jpg`;
+  const path = `images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.png`;
   img.style.display = 'none'; ph.style.display = 'block';
   ph.innerHTML = '<div class="icon">⏳</div><div>Loading...</div>';
   img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
