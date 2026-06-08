@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BOP Restoration Sites — Integrated Map</title>
+  <title>Billion Oyster Project - Restoration Pipeline - Site Prioritization</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +19,6 @@
     }
     .header-left { flex: 1; min-width: 200px; }
     header h1 { font-size: 1.0rem; font-weight: 600; color: #e0e0e0; }
-    header p { font-size: 0.75rem; color: #8899aa; margin-top: 2px; }
     .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .layer-toggle {
       display: flex; align-items: center; gap: 6px;
@@ -33,13 +32,10 @@
     .layer-toggle.active.orange { background: #3a2a10; border-color: #e67e22; }
     .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     #map { flex: 1; position: relative; }
-
-    /* Legends */
     .map-legend {
       position: absolute; z-index: 1000;
-      background: rgba(22,33,62,0.93);
-      border: 1px solid #0f3460; border-radius: 8px;
-      padding: 10px 14px; font-size: 0.72rem; color: #ccc;
+      background: rgba(22,33,62,0.93); border: 1px solid #0f3460;
+      border-radius: 8px; padding: 10px 14px; font-size: 0.72rem; color: #ccc;
       pointer-events: none;
     }
     .map-legend h4 { font-size: 0.78rem; color: #fff; margin-bottom: 7px; font-weight: 600; }
@@ -49,8 +45,6 @@
     #legend-natrx { bottom: 170px; right: 10px; display: none; }
     #legend-erosion { bottom: 30px; right: 10px; display: none; }
     #legend-markers { bottom: 30px; left: 10px; display: none; }
-
-    /* Popup base */
     .leaflet-popup-content-wrapper {
       background: #16213e; color: #e0e0e0;
       border: 1px solid #0f3460; border-radius: 8px;
@@ -60,16 +54,13 @@
     .leaflet-popup-content { margin: 0 !important; padding: 0 !important; font-size: 0.82rem; line-height: 1.5; }
     .natrx-popup .leaflet-popup-content-wrapper { border-color: #27ae60; }
     .erosion-popup .leaflet-popup-content-wrapper { border-color: #e67e22; }
-
-    /* Natrx popup interior */
     .np-wrap { width: 310px; }
     .np-header { padding: 10px 14px 6px; border-bottom: 1px solid #0f3460; }
     .np-title { font-weight: 600; font-size: 0.92rem; color: #fff; }
     .np-meta { font-size: 0.73rem; color: #8899aa; margin-top: 1px; }
     .np-rank-row {
       display: flex; align-items: center; gap: 8px;
-      padding: 6px 14px; border-bottom: 1px solid #0f3460;
-      background: #0f2040;
+      padding: 6px 14px; border-bottom: 1px solid #0f3460; background: #0f2040;
     }
     .np-rank { font-size: 1.0rem; font-weight: 700; color: #fff; }
     .np-score { font-size: 0.85rem; font-weight: 600; }
@@ -77,8 +68,6 @@
     .conf-high { background: #1a4a2a; color: #5dde8a; border: 1px solid #27ae60; }
     .conf-moderate { background: #3a3000; color: #f0c040; border: 1px solid #c09000; }
     .conf-low { background: #3a1a00; color: #e09050; border: 1px solid #c06010; }
-
-    /* Tabs */
     .np-tabs { display: flex; border-bottom: 1px solid #0f3460; }
     .np-tab {
       flex: 1; padding: 7px 4px; text-align: center;
@@ -90,16 +79,12 @@
     .np-body { padding: 10px 14px; }
     .np-panel { display: none; }
     .np-panel.active { display: block; }
-
-    /* Data grid inside popup */
     .dg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
     .dg .k { color: #8899aa; font-size: 0.72rem; }
     .dg .v { color: #dde; font-size: 0.72rem; font-weight: 500; }
-    .dg.full { grid-template-columns: 1fr; }
     .section-label {
       font-size: 0.7rem; font-weight: 600; color: #2980b9;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      margin: 8px 0 4px;
+      text-transform: uppercase; letter-spacing: 0.05em; margin: 8px 0 4px;
     }
     .section-label:first-child { margin-top: 0; }
     .score-bar-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
@@ -107,24 +92,16 @@
     .score-bar-bg { flex: 1; height: 6px; background: #0f2040; border-radius: 3px; }
     .score-bar-fill { height: 6px; border-radius: 3px; }
     .score-bar-val { font-size: 0.7rem; color: #dde; width: 28px; text-align: right; flex-shrink: 0; }
-
-    /* Boolean chips */
-    .chip {
-      display: inline-block; padding: 1px 7px; border-radius: 8px;
-      font-size: 0.7rem; font-weight: 600;
-    }
+    .chip { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; }
     .chip-yes { background: #1a4a2a; color: #5dde8a; }
     .chip-no  { background: #2a1a1a; color: #e08080; }
     .chip-na  { background: #2a2a2a; color: #888; }
-
-    /* Marker popup */
-    .popup-title { font-weight: 600; font-size: 0.92rem; color: #fff; margin-bottom: 2px; padding: 10px 14px 0; }
+    .popup-title { font-weight: 600; font-size: 0.92rem; color: #fff; padding: 10px 14px 0; }
     .popup-meta { color: #8899aa; padding: 0 14px 8px; font-size: 0.8rem; }
     .popup-btn {
-      display: block; background: #2980b9; color: #fff;
-      border: none; padding: 6px 14px; cursor: pointer;
-      font-size: 0.8rem; font-weight: 500; width: 100%;
-      text-align: center; border-top: 1px solid #0f3460;
+      display: block; background: #2980b9; color: #fff; border: none;
+      padding: 6px 14px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      width: 100%; text-align: center; border-top: 1px solid #0f3460;
     }
     .popup-btn:hover { background: #3498db; }
 
@@ -136,42 +113,60 @@
     }
     #modal-overlay.active { display: flex; }
     #modal {
-      background: #16213e; border: 1px solid #0f3460;
-      border-radius: 10px; width: min(680px, 95vw);
-      max-height: 90vh; display: flex; flex-direction: column;
+      background: #16213e; border: 1px solid #0f3460; border-radius: 10px;
+      width: min(720px, 95vw); max-height: 92vh;
+      display: flex; flex-direction: column;
       box-shadow: 0 8px 40px rgba(0,0,0,0.6); overflow: hidden;
     }
     #modal-header {
-      padding: 14px 18px; background: #0f3460;
-      display: flex; align-items: flex-start;
-      justify-content: space-between; gap: 10px;
+      padding: 14px 18px; background: #0f3460; flex-shrink: 0;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
     }
     #modal-title { font-size: 1rem; font-weight: 600; color: #fff; }
     #modal-meta { font-size: 0.75rem; color: #8899bb; margin-top: 2px; }
     #modal-close {
-      background: none; border: none; color: #aaa;
-      font-size: 1.3rem; cursor: pointer; line-height: 1;
-      padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+      background: none; border: none; color: #aaa; font-size: 1.3rem;
+      cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
     }
     #modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    #year-tabs {
-      display: flex; gap: 8px; padding: 12px 18px;
-      background: #1a2a4a; border-bottom: 1px solid #0f3460;
+    #modal-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 18px; background: #1a2a4a;
+      border-bottom: 1px solid #0f3460; flex-shrink: 0; gap: 10px; flex-wrap: wrap;
     }
+    #year-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .year-btn {
-      background: #0f3460; border: 1px solid #1a4a80;
-      color: #aabbcc; padding: 6px 18px; border-radius: 20px;
-      cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.15s;
+      background: #0f3460; border: 1px solid #1a4a80; color: #aabbcc;
+      padding: 5px 14px; border-radius: 20px; cursor: pointer;
+      font-size: 0.8rem; font-weight: 500; transition: all 0.15s; white-space: nowrap;
     }
     .year-btn:hover { background: #1a4a80; color: #fff; }
     .year-btn.active { background: #2980b9; border-color: #3498db; color: #fff; }
-    #modal-body {
-      flex: 1; overflow-y: auto; padding: 16px 18px;
-      display: flex; align-items: center; justify-content: center; min-height: 200px;
+    #zoom-controls { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .zoom-btn {
+      background: #0f3460; border: 1px solid #1a4a80; color: #ccd;
+      width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
+      font-size: 1.1rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; user-select: none;
     }
-    #image-container { width: 100%; text-align: center; }
-    #site-image { max-width: 100%; max-height: 55vh; border-radius: 6px; border: 1px solid #0f3460; }
-    #image-placeholder { color: #556677; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
+    .zoom-btn:hover { background: #1a4a80; color: #fff; }
+    .zoom-btn.wide { width: auto; padding: 0 8px; font-size: 0.72rem; }
+    #zoom-level { font-size: 0.75rem; color: #8899aa; min-width: 36px; text-align: center; }
+    #modal-body {
+      flex: 1; overflow: hidden; position: relative;
+      background: #0d1526; cursor: grab; min-height: 300px;
+    }
+    #modal-body.grabbing { cursor: grabbing; }
+    #site-image {
+      position: absolute; transform-origin: 0 0;
+      max-width: none; user-select: none; -webkit-user-drag: none;
+      display: none;
+    }
+    #image-placeholder {
+      color: #556677; font-size: 0.9rem; text-align: center;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    }
     #image-placeholder .icon { font-size: 2.5rem; margin-bottom: 8px; }
   </style>
 </head>
@@ -179,8 +174,7 @@
 
 <header>
   <div class="header-left">
-    <h1>🦪 BOP Restoration Sites — Integrated Map</h1>
-    <p>Larval transport model output · Natrx biophysical rankings · Shoreline erosion/accretion</p>
+    <h1>🦪 Billion Oyster Project - Restoration Pipeline - Site Prioritization</h1>
   </div>
   <div class="controls">
     <button class="layer-toggle active" id="btn-markers" onclick="toggleLayer('markers')">
@@ -222,7 +216,6 @@
   </div>
 </div>
 
-<!-- Modal -->
 <div id="modal-overlay">
   <div id="modal">
     <div id="modal-header">
@@ -232,18 +225,24 @@
       </div>
       <button id="modal-close" title="Close">✕</button>
     </div>
-    <div id="year-tabs">
-      <button class="year-btn active" data-year="1993">1993</button>
-      <button class="year-btn" data-year="1995">1995</button>
-      <button class="year-btn" data-year="1996">1996</button>
+    <div id="modal-toolbar">
+      <div id="year-tabs">
+        <button class="year-btn active" data-year="1993">1993 (moderate flow)</button>
+        <button class="year-btn" data-year="1995">1995 (low flow)</button>
+        <button class="year-btn" data-year="1996">1996 (high flow)</button>
+      </div>
+      <div id="zoom-controls">
+        <button class="zoom-btn" onclick="zoomImg(-1)" title="Zoom out">−</button>
+        <span id="zoom-level">100%</span>
+        <button class="zoom-btn" onclick="zoomImg(1)" title="Zoom in">+</button>
+        <button class="zoom-btn wide" onclick="resetZoom()" title="Reset">Reset</button>
+      </div>
     </div>
     <div id="modal-body">
-      <div id="image-container">
-        <img id="site-image" src="" alt="Model output" style="display:none;" />
-        <div id="image-placeholder">
-          <div class="icon">🗺️</div>
-          <div>Select a year above to view model output</div>
-        </div>
+      <img id="site-image" src="" alt="Model output" draggable="false" />
+      <div id="image-placeholder">
+        <div class="icon">🗺️</div>
+        <div>Select a year above to view model output</div>
       </div>
     </div>
   </div>
@@ -359,100 +358,76 @@ const sites = [
   {id:101,name:"Earle",                         status:"Proposed Future Site", waterbody:"Raritan Bay/Lower Harbor",      acres:null,  lat:40.43739, lon:-74.0625}
 ];
 
-// ── Color helpers ─────────────────────────────────────────────────────────────
-const statusColors = {
+const statusColors={
   "Installed":"#27ae60","Design":"#2980b9","Proposed Future Site":"#f39c12",
   "Potential Wild":"#9b59b6","To Be Retired":"#7f8c8d","To be retired":"#7f8c8d"
 };
-function scoreColor(s) {
-  if (s >= 0.75) return '#1a9850';
-  if (s >= 0.60) return '#91cf60';
-  if (s >= 0.45) return '#d9ef8b';
-  if (s >= 0.30) return '#fee08b';
-  return '#fc8d59';
+function scoreColor(s){
+  if(s>=0.75)return'#1a9850';if(s>=0.60)return'#91cf60';
+  if(s>=0.45)return'#d9ef8b';if(s>=0.30)return'#fee08b';return'#fc8d59';
 }
-function erosionColor(v) {
-  if (v > 2)    return '#1a6bbd';
-  if (v > 0.5)  return '#74b9e8';
-  if (v >= -0.5) return '#aaaaaa';
-  if (v >= -2)  return '#f4a460';
-  return '#c0392b';
+function erosionColor(v){
+  if(v>2)return'#1a6bbd';if(v>0.5)return'#74b9e8';
+  if(v>=-0.5)return'#aaaaaa';if(v>=-2)return'#f4a460';return'#c0392b';
 }
-function confClass(c) {
-  if (!c) return 'conf-low';
-  c = c.toLowerCase();
-  if (c === 'high') return 'conf-high';
-  if (c.startsWith('moderate')) return 'conf-moderate';
-  return 'conf-low';
+function confClass(c){
+  if(!c)return'conf-low';c=c.toLowerCase();
+  if(c==='high')return'conf-high';
+  if(c.startsWith('moderate'))return'conf-moderate';
+  return'conf-low';
 }
-function fmt(v, dec=2) { return v != null ? Number(v).toFixed(dec) : '—'; }
-function chip(v) {
-  if (v == null) return '<span class="chip chip-na">N/A</span>';
-  const t = String(v).toLowerCase();
-  if (t === 'true' || t === 'yes') return '<span class="chip chip-yes">Yes</span>';
-  if (t === 'false' || t === 'no') return '<span class="chip chip-no">No</span>';
-  return `<span class="chip chip-na">${v}</span>`;
+function fmt(v,dec=2){return v!=null?Number(v).toFixed(dec):'—';}
+function chip(v){
+  if(v==null)return'<span class="chip chip-na">N/A</span>';
+  const t=String(v).toLowerCase();
+  if(t==='true'||t==='yes')return'<span class="chip chip-yes">Yes</span>';
+  if(t==='false'||t==='no')return'<span class="chip chip-no">No</span>';
+  return`<span class="chip chip-na">${v}</span>`;
 }
-function scoreBar(label, score) {
-  const pct = Math.round((score || 0) * 100);
-  const col = scoreColor(score || 0);
-  return `<div class="score-bar-wrap">
+function scoreBar(label,score){
+  const pct=Math.round((score||0)*100),col=scoreColor(score||0);
+  return`<div class="score-bar-wrap">
     <span class="score-bar-label">${label}</span>
     <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-    <span class="score-bar-val">${fmt(score)}</span>
-  </div>`;
+    <span class="score-bar-val">${fmt(score)}</span></div>`;
 }
 
-// ── Map ───────────────────────────────────────────────────────────────────────
-const map = L.map('map', {center:[40.72,-73.92],zoom:10});
+const map=L.map('map',{center:[40.72,-73.92],zoom:10});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
   attribution:'© OpenStreetMap contributors © CARTO',maxZoom:19
 }).addTo(map);
 
-// ── Erosion layer ─────────────────────────────────────────────────────────────
-const erosionLayer = L.geoJSON(erosionData, {
-  pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-    radius:4, fillColor:erosionColor(feature.properties.land_change_ft_per_year),
-    color:'none', fillOpacity:0.75
-  }),
-  onEachFeature: (feature, layer) => {
-    const p = feature.properties;
-    const v = p.land_change_ft_per_year;
-    const trend = v > 0.5 ? '📈 Accreting' : v < -0.5 ? '📉 Eroding' : '➡️ Stable';
-    layer.bindPopup(`
-      <div style="padding:10px 14px">
-        <div class="np-title">Shoreline Transect</div>
-        <div class="np-meta" style="margin-bottom:6px">${trend}</div>
-        <div class="dg">
-          <span class="k">Land change</span><span class="v">${fmt(v)} ft/yr</span>
-          <span class="k">EPR</span><span class="v">${fmt(p.epr_ft_per_year)} ft/yr</span>
-          <span class="k">Net shore mvmt</span><span class="v">${fmt(p.nsm_ft,1)} ft</span>
-          <span class="k">R²</span><span class="v">${fmt(p.r_squared)}</span>
-        </div>
-      </div>`, {className:'erosion-popup'});
+const erosionLayer=L.geoJSON(erosionData,{
+  pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,fillColor:erosionColor(f.properties.land_change_ft_per_year),color:'none',fillOpacity:0.75}),
+  onEachFeature:(feature,layer)=>{
+    const p=feature.properties,v=p.land_change_ft_per_year;
+    const trend=v>0.5?'📈 Accreting':v<-0.5?'📉 Eroding':'➡️ Stable';
+    layer.bindPopup(`<div style="padding:10px 14px">
+      <div class="np-title">Shoreline Transect</div>
+      <div class="np-meta" style="margin-bottom:6px">${trend}</div>
+      <div class="dg">
+        <span class="k">Land change</span><span class="v">${fmt(v)} ft/yr</span>
+        <span class="k">EPR</span><span class="v">${fmt(p.epr_ft_per_year)} ft/yr</span>
+        <span class="k">Net shore mvmt</span><span class="v">${fmt(p.nsm_ft,1)} ft</span>
+        <span class="k">R²</span><span class="v">${fmt(p.r_squared)}</span>
+      </div></div>`,{className:'erosion-popup'});
   }
 }).addTo(map);
 
-// ── Natrx layer ───────────────────────────────────────────────────────────────
-const natrxLayer = L.geoJSON(natrxData, {
-  style: feature => ({
-    fillColor: scoreColor(feature.properties.Score),
-    fillOpacity:0.55, color:'#fff', weight:1.2, opacity:0.7
-  }),
-  onEachFeature: (feature, layer) => {
-    const p = feature.properties;
-
-    // Build popup HTML with tabs
-    const popupHTML = `
+const natrxLayer=L.geoJSON(natrxData,{
+  style:f=>({fillColor:scoreColor(f.properties.Score),fillOpacity:0.55,color:'#fff',weight:1.2,opacity:0.7}),
+  onEachFeature:(feature,layer)=>{
+    const p=feature.properties;
+    layer.bindPopup(`
 <div class="np-wrap">
   <div class="np-header">
     <div class="np-title">${p.Site}</div>
-    <div class="np-meta">${p.Waterbody} · ${p.Acres ? Number(p.Acres).toFixed(1)+' ac' : ''}</div>
+    <div class="np-meta">${p.Waterbody} · ${p.Acres?Number(p.Acres).toFixed(1)+' ac':''}</div>
   </div>
   <div class="np-rank-row">
     <span class="np-rank">Rank #${p.Rank}</span>
     <span class="np-score" style="color:${scoreColor(p.Score)}">Score: ${p.Score}</span>
-    <span class="np-conf ${confClass(p.ConfidenceRule)}">${p.ConfidenceRule || 'N/A'}</span>
+    <span class="np-conf ${confClass(p.ConfidenceRule)}">${p.ConfidenceRule||'N/A'}</span>
   </div>
   <div class="np-tabs">
     <div class="np-tab active" onclick="npTab(this,'overview')">Overview</div>
@@ -461,12 +436,10 @@ const natrxLayer = L.geoJSON(natrxData, {
     <div class="np-tab" onclick="npTab(this,'stressors')">Stressors</div>
   </div>
   <div class="np-body">
-
-    <!-- Overview -->
     <div class="np-panel active" id="panel-overview">
-      ${scoreBar('Salinity', p.stats_sal_score)}
-      ${scoreBar('Chlorophyll', p.stats_chla_score)}
-      ${scoreBar('Dissolved O₂', p.stats_do_score)}
+      ${scoreBar('Salinity',p.stats_sal_score)}
+      ${scoreBar('Chlorophyll',p.stats_chla_score)}
+      ${scoreBar('Dissolved O₂',p.stats_do_score)}
       <div class="section-label" style="margin-top:10px">Site Flags</div>
       <div class="dg">
         <span class="k">Near CSO</span><span class="v">${chip(p.NearCSO)}</span>
@@ -474,11 +447,9 @@ const natrxLayer = L.geoJSON(natrxData, {
         <span class="k">Near Park</span><span class="v">${chip(p.NearPark)}</span>
         <span class="k">Wave &gt;3ft</span><span class="v">${chip(p.WaveExposure)}</span>
         <span class="k">Erosion</span><span class="v">${chip(p.Erosion)}</span>
-        <span class="k">Suitable Depth</span><span class="v">${p.PercentageSuitableDepth != null ? Number(p.PercentageSuitableDepth).toFixed(1)+'%' : '—'}</span>
+        <span class="k">Suitable Depth</span><span class="v">${p.PercentageSuitableDepth!=null?Number(p.PercentageSuitableDepth).toFixed(1)+'%':'—'}</span>
       </div>
     </div>
-
-    <!-- Water Quality -->
     <div class="np-panel" id="panel-waterquality">
       <div class="section-label">Salinity (PSU)</div>
       <div class="dg">
@@ -506,8 +477,6 @@ const natrxLayer = L.geoJSON(natrxData, {
         <span class="k">Nearest station</span><span class="v">${fmt(p.stats_do_nearest_station_m,0)} m</span>
       </div>
     </div>
-
-    <!-- Depth -->
     <div class="np-panel" id="panel-depth">
       <div class="section-label">Depth Distribution</div>
       <div class="dg">
@@ -515,11 +484,9 @@ const natrxLayer = L.geoJSON(natrxData, {
         <span class="k">0–20 ft</span><span class="v">${fmt(p.stats_depth_0_20ft_pct,1)}%</span>
         <span class="k">20–39 ft</span><span class="v">${fmt(p.stats_depth_20_39ft_pct,1)}%</span>
         <span class="k">&gt;39 ft</span><span class="v">${fmt(p.stats_depth_39ft_plus_pct,1)}%</span>
-        <span class="k">Suitable depth %</span><span class="v">${p.PercentageSuitableDepth != null ? Number(p.PercentageSuitableDepth).toFixed(1)+'%' : '—'}</span>
+        <span class="k">Suitable depth %</span><span class="v">${p.PercentageSuitableDepth!=null?Number(p.PercentageSuitableDepth).toFixed(1)+'%':'—'}</span>
       </div>
     </div>
-
-    <!-- Stressors -->
     <div class="np-panel" id="panel-stressors">
       <div class="section-label">Pollution Sources</div>
       <div class="dg">
@@ -531,8 +498,8 @@ const natrxLayer = L.geoJSON(natrxData, {
       <div class="section-label">Physical Exposure</div>
       <div class="dg">
         <span class="k">Wave &gt;3ft</span><span class="v">${chip(p.stats_wave_sup_3ft)}</span>
-        <span class="k">Erosion &gt;0 ft/yr</span><span class="v">${p.stats_erosion_gt_0_ft_yr != null ? fmt(p.stats_erosion_gt_0_ft_yr) : '—'}</span>
-        <span class="k">Erosion &gt;1 ft/yr</span><span class="v">${p.stats_erosion_gt_1_ft_yr != null ? fmt(p.stats_erosion_gt_1_ft_yr) : '—'}</span>
+        <span class="k">Erosion &gt;0 ft/yr</span><span class="v">${p.stats_erosion_gt_0_ft_yr!=null?fmt(p.stats_erosion_gt_0_ft_yr):'—'}</span>
+        <span class="k">Erosion &gt;1 ft/yr</span><span class="v">${p.stats_erosion_gt_1_ft_yr!=null?fmt(p.stats_erosion_gt_1_ft_yr):'—'}</span>
       </div>
       <div class="section-label">Park Access</div>
       <div class="dg">
@@ -540,102 +507,155 @@ const natrxLayer = L.geoJSON(natrxData, {
         <span class="k">Park nearest</span><span class="v">${fmt(p.stats_park_nearest_ft,0)} ft</span>
       </div>
     </div>
-
   </div>
-</div>`;
-
-    layer.bindPopup(popupHTML, {className:'natrx-popup', maxWidth:340});
-    layer.on('mouseover', () => layer.setStyle({fillOpacity:0.8,weight:2.5}));
-    layer.on('mouseout',  () => natrxLayer.resetStyle(layer));
+</div>`,{className:'natrx-popup',maxWidth:340});
+    layer.on('mouseover',()=>layer.setStyle({fillOpacity:0.8,weight:2.5}));
+    layer.on('mouseout', ()=>natrxLayer.resetStyle(layer));
   }
 }).addTo(map);
 
-// Tab switching function (global so onclick works inside popup)
-function npTab(el, panelId) {
-  const wrap = el.closest('.np-wrap');
-  wrap.querySelectorAll('.np-tab').forEach(t => t.classList.remove('active'));
-  wrap.querySelectorAll('.np-panel').forEach(p => p.classList.remove('active'));
+function npTab(el,panelId){
+  const wrap=el.closest('.np-wrap');
+  wrap.querySelectorAll('.np-tab').forEach(t=>t.classList.remove('active'));
+  wrap.querySelectorAll('.np-panel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
-  wrap.querySelector('#panel-' + panelId).classList.add('active');
+  wrap.querySelector('#panel-'+panelId).classList.add('active');
 }
 
-// ── Site markers ──────────────────────────────────────────────────────────────
-const markerGroup = L.layerGroup().addTo(map);
-sites.forEach(site => {
-  const color = statusColors[site.status] || '#e74c3c';
-  const marker = L.circleMarker([site.lat, site.lon], {
-    radius:7, fillColor:color, color:'#fff', weight:1.5, opacity:1, fillOpacity:0.9
+const markerGroup=L.layerGroup().addTo(map);
+sites.forEach(site=>{
+  const color=statusColors[site.status]||'#e74c3c';
+  const marker=L.circleMarker([site.lat,site.lon],{
+    radius:7,fillColor:color,color:'#fff',weight:1.5,opacity:1,fillOpacity:0.9
   }).addTo(markerGroup);
   marker.bindPopup(`
     <div class="popup-title">${site.name}</div>
-    <div class="popup-meta">${site.waterbody}<br>${site.status}${site.acres != null ? ' · '+site.acres+' ac' : ''}</div>
+    <div class="popup-meta">${site.waterbody}<br>${site.status}${site.acres!=null?' · '+site.acres+' ac':''}</div>
     <button class="popup-btn" onclick="openModal(${site.id})">View Model Output →</button>
   `);
 });
 
-// Show legends
-['legend-natrx','legend-erosion','legend-markers'].forEach(id =>
-  document.getElementById(id).style.display = 'block');
+['legend-natrx','legend-erosion','legend-markers'].forEach(id=>
+  document.getElementById(id).style.display='block');
 
-// ── Layer toggles ─────────────────────────────────────────────────────────────
-const layerMap = {
-  markers: {layer:markerGroup, btn:'btn-markers', legend:'legend-markers', visible:true},
-  natrx:   {layer:natrxLayer,  btn:'btn-natrx',   legend:'legend-natrx',   visible:true},
-  erosion: {layer:erosionLayer,btn:'btn-erosion',  legend:'legend-erosion', visible:true}
+const layerMap={
+  markers:{layer:markerGroup,btn:'btn-markers',legend:'legend-markers',visible:true},
+  natrx:  {layer:natrxLayer, btn:'btn-natrx',  legend:'legend-natrx',  visible:true},
+  erosion:{layer:erosionLayer,btn:'btn-erosion',legend:'legend-erosion',visible:true}
 };
-function toggleLayer(key) {
-  const item = layerMap[key];
-  item.visible = !item.visible;
-  const btn = document.getElementById(item.btn);
-  const leg = document.getElementById(item.legend);
-  if (item.visible) { map.addLayer(item.layer); btn.classList.add('active'); leg.style.display='block'; }
-  else { map.removeLayer(item.layer); btn.classList.remove('active'); leg.style.display='none'; }
+function toggleLayer(key){
+  const item=layerMap[key]; item.visible=!item.visible;
+  const btn=document.getElementById(item.btn),leg=document.getElementById(item.legend);
+  if(item.visible){map.addLayer(item.layer);btn.classList.add('active');leg.style.display='block';}
+  else{map.removeLayer(item.layer);btn.classList.remove('active');leg.style.display='none';}
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-let currentSiteId = null, currentYear = "1993";
-function openModal(siteId) {
-  currentSiteId = siteId;
-  const site = sites.find(s => s.id === siteId);
-  document.getElementById('modal-title').textContent = `#${site.id} — ${site.name}`;
-  document.getElementById('modal-meta').textContent =
-    `${site.waterbody} · ${site.status}${site.acres != null ? ' · '+site.acres+' acres' : ''}`;
-  currentYear = "1993";
-  document.querySelectorAll('.year-btn').forEach(b => b.classList.toggle('active', b.dataset.year === currentYear));
+// ── Zoom / pan ────────────────────────────────────────────────────────────────
+let currentSiteId=null,currentYear="1993";
+let imgScale=1,imgX=0,imgY=0;
+let isDragging=false,dragStartX=0,dragStartY=0,dragOriginX=0,dragOriginY=0;
+const MIN_SCALE=0.25,MAX_SCALE=8,ZOOM_STEP=0.4;
+
+function applyTransform(){
+  const img=document.getElementById('site-image');
+  img.style.transform=`translate(${imgX}px,${imgY}px) scale(${imgScale})`;
+  document.getElementById('zoom-level').textContent=Math.round(imgScale*100)+'%';
+}
+
+function centerImage(){
+  const body=document.getElementById('modal-body');
+  const img=document.getElementById('site-image');
+  const bw=body.clientWidth,bh=body.clientHeight;
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  if(iw&&ih){
+    const fit=Math.min(bw/iw,bh/ih,1);
+    imgScale=fit;
+    imgX=(bw-iw*fit)/2;
+    imgY=(bh-ih*fit)/2;
+  } else { imgScale=1;imgX=0;imgY=0; }
+  applyTransform();
+}
+
+function zoomImg(dir){
+  imgScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,imgScale+dir*ZOOM_STEP));
+  applyTransform();
+}
+function resetZoom(){ centerImage(); }
+
+const modalBody=document.getElementById('modal-body');
+modalBody.addEventListener('mousedown',e=>{
+  if(e.target.id!=='site-image')return;
+  isDragging=true;dragStartX=e.clientX;dragStartY=e.clientY;
+  dragOriginX=imgX;dragOriginY=imgY;
+  modalBody.classList.add('grabbing');
+  e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  imgX=dragOriginX+(e.clientX-dragStartX);
+  imgY=dragOriginY+(e.clientY-dragStartY);
+  applyTransform();
+});
+document.addEventListener('mouseup',()=>{
+  isDragging=false;modalBody.classList.remove('grabbing');
+});
+modalBody.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const delta=e.deltaY>0?-ZOOM_STEP:ZOOM_STEP;
+  imgScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,imgScale+delta));
+  applyTransform();
+},{passive:false});
+
+function openModal(siteId){
+  currentSiteId=siteId;
+  const site=sites.find(s=>s.id===siteId);
+  document.getElementById('modal-title').textContent=`#${site.id} — ${site.name}`;
+  document.getElementById('modal-meta').textContent=
+    `${site.waterbody} · ${site.status}${site.acres!=null?' · '+site.acres+' acres':''}`;
+  currentYear="1993";
+  document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b.dataset.year===currentYear));
   loadImage();
   document.getElementById('modal-overlay').classList.add('active');
   map.closePopup();
 }
-function loadImage() {
-  const img = document.getElementById('site-image');
-  const ph  = document.getElementById('image-placeholder');
-  const path = `images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.png`;
+
+function loadImage(){
+  const img=document.getElementById('site-image');
+  const ph=document.getElementById('image-placeholder');
+  const path=`images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.png`;
   img.style.display='none'; ph.style.display='block';
   ph.innerHTML='<div class="icon">⏳</div><div>Loading...</div>';
-  img.onload  = () => { img.style.display='block'; ph.style.display='none'; };
-  img.onerror = () => {
+  imgScale=1;imgX=0;imgY=0;
+  img.onload=()=>{
+    img.style.transformOrigin='0 0';
+    img.style.display='block';
+    ph.style.display='none';
+    centerImage();
+  };
+  img.onerror=()=>{
     img.style.display='none';
     ph.innerHTML=`<div class="icon">📂</div><div>Image not found:<br><code style="font-size:0.75rem;color:#aaa">${path}</code></div>`;
     ph.style.display='block';
   };
-  img.src = path;
+  img.src=path;
 }
-function closeModal() {
+
+function closeModal(){
   document.getElementById('modal-overlay').classList.remove('active');
-  currentSiteId = null;
+  currentSiteId=null;
 }
-document.querySelectorAll('.year-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentYear = btn.dataset.year;
-    document.querySelectorAll('.year-btn').forEach(b => b.classList.toggle('active', b===btn));
-    if (currentSiteId !== null) loadImage();
+document.querySelectorAll('.year-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    currentYear=btn.dataset.year;
+    document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    if(currentSiteId!==null)loadImage();
   });
 });
-document.getElementById('modal-close').addEventListener('click', closeModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal-overlay')) closeModal();
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))closeModal();
 });
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 </script>
 </body>
