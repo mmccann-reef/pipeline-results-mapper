@@ -242,7 +242,7 @@
 <header>
   <div>
     <h1>🦪 BOP Restoration Sites — Larval Transport Model Output</h1>
-    <p>Click any site marker to view model output images for 1993, 1995, and 1998</p>
+    <p>Click any site marker to view model output images for 1993, 1995, and 1996</p>
   </div>
   <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div> Installed</div>
@@ -268,7 +268,7 @@
     <div id="year-tabs">
       <button class="year-btn active" data-year="1993">1993</button>
       <button class="year-btn" data-year="1995">1995</button>
-      <button class="year-btn" data-year="1998">1998</button>
+      <button class="year-btn" data-year="1996">1996</button>
     </div>
     <div id="modal-body">
       <div id="image-container">
@@ -473,7 +473,7 @@ function openModal(siteId) {
 function loadImage() {
   const img = document.getElementById('site-image');
   const placeholder = document.getElementById('image-placeholder');
-  const path = `images/HeatMap_Polygon_${currentSiteId}_${currentYear}.jpg`;
+  const path = `images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.png`;
 
   img.style.display = 'none';
   placeholder.style.display = 'block';
