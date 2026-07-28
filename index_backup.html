@@ -159,13 +159,23 @@
     #zoom-level { font-size: 0.75rem; color: #8899aa; min-width: 36px; text-align: center; }
     #modal-body {
       flex: 1; overflow: hidden; position: relative;
-      background: #0a1020;
+      background: #0a1020; cursor: grab;
+    }
+    #modal-body.grabbing { cursor: grabbing; }
+    #site-image {
+      position: absolute; transform-origin: 0 0;
+      max-width: none; user-select: none; -webkit-user-drag: none; display: none;
     }
     #image-placeholder {
       color: #556677; font-size: 0.9rem; text-align: center;
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     }
     #image-placeholder .icon { font-size: 2.5rem; margin-bottom: 8px; }
+    #zoom-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      font-size: 0.7rem; color: #445566; pointer-events: none;
+      background: rgba(10,16,32,0.7); padding: 3px 10px; border-radius: 10px;
+    }
     /* Larval connectivity centrality readout */
     .cen-block { padding:2px 14px 4px; }
     .cen-title { font-size:0.68rem; color:#8fa3bd; text-transform:uppercase; letter-spacing:0.04em; margin:6px 0 5px; font-weight:600; }
@@ -269,14 +279,20 @@
         <button class="year-btn" data-year="1995">1995 (low flow)</button>
         <button class="year-btn" data-year="1996">1996 (high flow)</button>
       </div>
-
+      <div id="zoom-controls">
+        <button class="zoom-btn" onclick="zoomImg(-1)" title="Zoom out">−</button>
+        <span id="zoom-level">100%</span>
+        <button class="zoom-btn" onclick="zoomImg(1)" title="Zoom in">+</button>
+        <button class="zoom-btn wide" onclick="resetZoom()">Reset</button>
+      </div>
     </div>
     <div id="modal-body">
-      <iframe id="pdf-frame" src="" allow="autoplay" style="display:none;width:100%;height:100%;border:none;"></iframe>
+      <img id="site-image" src="" alt="Model output" draggable="false" />
       <div id="image-placeholder">
         <div class="icon">🗺️</div>
         <div>Select a year above to view model output</div>
       </div>
+      <div id="zoom-hint">Scroll to zoom · Click and drag to pan</div>
     </div>
   </div>
 </div>
@@ -791,40 +807,88 @@ function onHeatmapMetricChange(){
   applyMarkerColors();
 }
 
-// ── Drive file ID lookup ──────────────────────────────────────────────────────
-const driveFiles = {"4":{"1993":"1ylW4zK2Pms78umHXdSMA1F9eb7Eb7dHa","1995":"1NZEDP-LCPiTivlQ-U3YQcZhsPNNJ8MEJ","1996":"1r1n_0HnA5toZ3vtmVudGydXpLfiuGSOw"},"2":{"1993":"1LhGTcvdV4pxhInlbzdZokG6yrjDAHTkg","1995":"1U7UivLbAn3xtCk1ARdNis5ADgHV66GV_","1996":"1g9FHzDFdlwEeAeFWBlJ71wwEUjHOpALZ"},"101":{"1993":"1zYHyVUiIsIOhnXT-5S4dCVi7axVK-Ppn","1995":"12Mx0httQqW8zXAVHdktXXcu2q4ateulC","1996":"13KxtrZrByLyY_Ahz6Co-uGSOcNO_rJdz"},"1":{"1993":"1u0M7gkNCdLLqcHjcXCtDyfeiDC_Czr_P","1995":"1GhPm4hbV8T-t0TW9QG70tCZu3VVF4FZP","1996":"1ubC1fiLAdeT6Iybz0Z6afdUJ-axuakYF"},"95":{"1993":"1LtgcKYSvjjDYfqBxceXx-MRuUkarPOio","1995":"1glpOnYQGl8OnvOUObPuEC9JHEOURMaxm","1996":"1GTBB_EzNekawNSzeg295q3maUr2j-eyh"},"3":{"1993":"1cLf1PGaRznF0zBRlzPgkiY6Fj2L-id-y","1995":"1unrJ2_L6I0G94f9kRi4mTKEXbhr1bYMs","1996":"1mXQkOZibGgHKKpqFGJEmfHgYDEhXnszm"},"94":{"1993":"1tqCglGIS3QjJLALEReviJX4MZh7rTEV4","1995":"1fOyJlYyC8S1GcBq7NRIRa5-lY0PMHagr","1996":"1vsygGS5SUts62Qfwh3Biszk6JMU2iiK3"},"87":{"1993":"1J5EVKJ02kWt21PsVmacCrge5G9Q-1HY-","1995":"1EGxOzhxEYwAt9ImEqax520XMcBLa0prs","1996":"1Ts3dCJTDIEFVIe9Pk49rzgIMhEg_2l0w"},"100":{"1993":"1ULfkuvpo3BzvWzXSMPc9_YbhGgGItase","1995":"1kSihOsgPZhUp86eqCvzWyCQBXG3HvlH7","1996":"1pdQ7jjEts4YRQ-sfp00lwd_T3l7Urfc7"},"96":{"1993":"1sPpEO4yIfWECZAVgoo1OYS05kIM7Jpsy","1995":"1l3aFOBbR_e_CU0wDhpMhtZ2-3QebGnuu","1996":"1qK5VTNhPZjMfvyudcw9BU_I5st1UUtx6"},"97":{"1993":"1t_LCyOsKh-c6pNNnxKJgQW8JgkdlxsuB","1995":"1N1GELyc2JjNkGvgdxU6cjCt6e_NMarh5","1996":"1DSuXJHlnBC7tx8WOrw807TPjhxVYRlXj"},"99":{"1993":"1Hj4KKwRDODSzKbtXOSIRq6dp8ALIGmie","1995":"1MiWGCo6gVSYl5cO4Bs4Br1PKSA7nrPE4","1996":"1HYXBFRwdFk6nBdHhTOdu38unSWITuuch"},"98":{"1993":"1EPysFRgcg7fD8cJVxSC81l6YNvPOr3lx","1995":"1aXqcbTTRM3gzYfzdDji6BAhZxKmEtUW_","1996":"1CTJ4yiGrQMG3DFoTYukgaVvaoYGhxD5h"},"90":{"1993":"1XIwElZ0LUOJlibSeDbZGpg6ZCA0zGosm","1995":"1l2F4pcG6vAx8dQ-fUA6OzSTdi9jgQ-uv","1996":"1Qt9CxRqL9FyKuuUAwpXXvfMVxZ0ZpsQd"},"88":{"1993":"1eNA98QmrNdYxWCQZrHdbCfUkrUdJ0Q9l","1995":"1Uav_YRBWQGXkR2Ai9xfZHaMgTi4R_p6K","1996":"1JpDDMQeITiop45oVhhzhaJxXzdOtcpdn"},"91":{"1993":"1Dks_VLK4rA1LE6XChbX8w-7yhNTiv-ql","1995":"1yYBMjJMgCSjJmY3mTJohteNLAlBXoQAT","1996":"1CyIuWOadIaTfzcUDyohS4_SQC9Ur5ufz"},"89":{"1993":"1VddHC3ZuFtWPDs_lFlPUITDly6VzlmIz","1995":"1yg3yfEAhHKoOrhQ2k62SdOx7-7YwFH9z","1996":"1EOIPJElBLFwQFxyrD4uoMQDOAJnXcVwq"},"86":{"1993":"1foAyAz2toKFCDNI2p0_zRQpkG-fE10F3","1995":"1DA2YCT7wWC-cWRX9_uYwburhHK3IZLBq","1996":"1tgdLfs9nKfN2okJ67axeHcozd4ESVJzT"},"93":{"1993":"1j5n59uAw63LhSv7nAt4ICfcMhAI0Qlka","1995":"1RanNNVDKaqSOi4Kg0NHd1HqwRT-ehAm3","1996":"10bV8ESnPGgawrbAjlzyPcoeiRl9EAzeW"},"92":{"1993":"1Y2X5IBMtFv_FO1l60acnNujPu-4m6Ics","1995":"1hk0OzpWXpzmDRggnoHrILx0vK2sc3kSu","1996":"1UlFaHgyF-C4u2BQlzO-u1xEVdAik4Sh0"},"80":{"1993":"1m50b_hRGYCcA5aZ9b8ZGiBHdXTP9Feah","1995":"1TPsPmPo4rLeYACJcSAt2z_Js3UHItfhz","1996":"1I0raFPzBV66O9vVl2C9H_mSac58mBwx1"},"85":{"1993":"1_l58aVTvAdBeCqu5YNjsbbc8_3EAsGiJ","1995":"1ESvDHq8cqjN2zd-AwfZCwqvy-gCmx9Et","1996":"1M7votfyhpI17WrNI_H79Dnkya4VtCtIH"},"78":{"1993":"1dlYoSVTdb9gCfqJQx9spHDMB_pkLhXwW","1995":"1xA73JqRUzC8_hv7WJsqRgxbR7MdN2F0U","1996":"1oHDS4CHaak4whU1vYViQGY_FXuAzqjOb"},"83":{"1993":"1dH4MKm0hP0ooj-RlTETVo0aWbGgSJqGj","1995":"14DNOQylcLst1gIwQQ5hKfr5Cvass37Tu","1996":"1TkNFLf7OZW67-9Ss-Orqarmm17aLcvjV"},"77":{"1993":"12j3ytqDe3e5UQXQIZhvzntJE_Ufvje7J","1995":"1PdCyCneyQCh_B2OnwGe2RRT0Bh2GlkBp","1996":"1kmUvzr47mHkA2Zazm7st3rdb6QOQGtia"},"76":{"1993":"1yXwLklPxcpktKjFnDvIu85BS7-qVx9rQ","1995":"1hgv15nmCTPsREJWxNRs31i7bwmlgwQlB","1996":"1Jg-4PrC0236UKRlkNsdsycKZhRq7mV-z"},"79":{"1993":"1iRJfVoX1huFlu5L5uE55SH5EFE1i9l5J","1995":"1B5FSjKM9eEp7nzsViuIXJVJuFLS2bosy","1996":"1HBxDaou-QiqSEspc8zaI6zEOadPV38fw"},"81":{"1993":"1jDc_KcZXYD6_SbUbxlvG2DHX5mSnYQTH","1995":"1iE9ix-fMz5IzWBlDkduh1mcbdU15wG6_","1996":"1W597iJQp-jYg0hFCSyesxT8DV03bEnBJ"},"70":{"1993":"1-khBRVihUqBkSUGQYOmjIxZz5PGaLT5C","1995":"1cR5uvlr5u1geJEYI2E9WKmfjzNeKZUC5","1996":"1crOYzSD8URNvBdKloa45fkY9gXqVRHxZ"},"73":{"1993":"1l9VMaXfgaCAynllz2scI95M-T9sR2Uku","1995":"1PZhlqwj-ZIr-JRFZuokfrgC94nRUOT1H","1996":"1pQZrxrZpv6ZnPqwYU3AydKk8KMarqfjt"},"84":{"1993":"11Q5PrgEcwwBybqSRzGwzh-5Gt9s2gTDk","1995":"1wpLUMCR3ZUyyib4hOTU88k9O123Zgt4x","1996":"1RMyz-Qm7CTDftFybnS-YuQJzGLiA81_E"},"74":{"1993":"1QHj656M1OnWPOwcF-rdbSxpB_iqEfj_I","1995":"1wK7CRyfQHBVbk3aIst5aOiKm1PEYzvKN","1996":"1-aPFyfBnw8gd4MstfZgdLQPTLezagmeD"},"82":{"1993":"1pvBLky9E_raZERrsLIc5Z4dfC3a8cyd2","1995":"1ldG4WnXEAveF0xz5Ii-g07uF8zSI-2Od","1996":"1zphDASow0PwD5i6EXI2AUkZr_R-g_fX6"},"75":{"1993":"1McSJlkwtUQGeGHTRlnJzaMLu0IgnDT0U","1995":"10m-u9RKHDwZBmRQqj_fHVqJi0elP07Sv","1996":"1PovkfFbr7xGb0JSmr2CqpPsyPxMQkzx_"},"71":{"1993":"1eglbD3nSQoGMB6KrO0WFTXgUKaE2Etbe","1995":"1CYu3tv0iFC7ah-_SesrYPMPm9HineUX_","1996":"1-aeTji_KhGMq3_asIw1wpQZSUjyQYW2_"},"72":{"1993":"1SHWzePQi-KcfYCbs1CZIbcl9w23nFw7N","1995":"1qj4eMJWGN3DA3qlZNBPWyWaWP9J2b9Dt","1996":"1fo7ykNU8WLn-O1ZflxkYP28bbd707V5T"},"60":{"1993":"17KsyYS38DEagKQxOtJ0pxZVuhRNDIwLT","1995":"1Qhnv7oZRpQ8NQUe0RvvLlx1USZ91UotC","1996":"1lt1qnvV5t-nQiK5C2Pli9b1tozT10GPp"},"69":{"1993":"1QW-62m92U-FIAxtxCQefT1OGSrKyjfBr","1995":"1MyoYyua8Yw0tuFWF_Rs1GjhbaHb1lH51","1996":"1JZpooqGJMO_T_4pHSW5uT2ZK25PxHNPj"},"65":{"1993":"13xJp0ELRVig7cO6lrjr1sxz3VyBYNJYv","1995":"18c8MROKQcYp6tciRsJYjDI22jIfZH_NF","1996":"1qO3sP1kdVRtMZnqaR6jzJ-Rjnt-fcYcp"},"68":{"1993":"1xt2rPOLSI3uvG8fEXcdMqSJjHWINAYlF","1995":"1OVn0-dfKlPGSFOs-bigj7ehHfL1JgY3L","1996":"14bNN4jcy4GwysrE8rEqsUvYPnx1uQj1B"},"62":{"1993":"1OOV068gXOIEj1eJU_9Hsx8-iBQZ_6XoK","1995":"1D17z_jopIunXy4IXOS6-zrz9G-LakMs-","1996":"1RdXI4AYiNNlCfP_M_KzHMrOPe1wYbDMJ"},"64":{"1993":"1ghdwNlvwwT4a6BWZRDmdkwPWy0b_e0uJ","1995":"1KsB2EPLC5dF2a2LpQlqlwWmaNZENPzet","1996":"1QathjK1gOp53FcbC0m6hdGDmeOb2MBYW"},"67":{"1993":"1GalfTs6pG33O7yG8oUlEugNPztHQtqwy","1995":"1qQaBIt3MzrTO3EEArI2yOf8Z5543CxgT","1996":"1Hg6-4yfCbOcBlDdQ58xggcZLpgEhEWl-"},"66":{"1993":"1iEo2JqCTp06GVbapn0027f-ChBZ9LN_3","1995":"1c4lYRVTWiXO8_GiDrEwdTj48A2cgy44I","1996":"1HzTvuye2nQ__4c6eWlxJykWl1jh6nRWY"},"63":{"1993":"1VFaqMq3kc5U1y6Y7obzPQ-BTcda3BmS6","1995":"1-vdLCyU_6I5et6sMlllpiJhcicYFq8hk","1996":"1b-VXNrbGPdNwdKNpQEbm0W-c_DV7oPHn"},"61":{"1993":"1MU735MnQib_OCbjNfRh8K0LD1fhRBJX2","1995":"1dc-Eob8NmiFyiYtdfAeXVetqG71dgAEj","1996":"1hZ3iqwEfo8TMiRCM10folOvofL8NYvoO"},"56":{"1993":"10WbLkt3jEkTNcZ-5gHAvNEYLSmqQ0mNR","1995":"1AN8c8o5QVt4brCgQuu2LNpPOvL8r5tXC","1996":"1uUbdpyTFh6ddwrUcSgv8xZKUAOIArtb7"},"59":{"1993":"1i5n7-ERgYXExw5Af1nFmKSEQswfQ2H5X","1995":"1dUxcW2LXp5XZA0L-4ZbSX6MvQ1Y74BRy","1996":"1hD1-aoIt0AGRCbg1cO2mdRqyahayrC-L"},"57":{"1993":"1JoGn85AorimWefDWbx1QpKK1pYxpxxyo","1995":"1kRjEbksvBeaS035c-DLvraMkS8AmUy4c","1996":"1JRjxODhfxfTQ3Qh_sP4Yu0p0LPeih-KC"},"58":{"1993":"1jtMB0mEhjRwSf-SUiWjqxJELRhzd7iWW","1995":"1WkpaHY_kaIYB7rGwVRZcFIMph2vWW5si","1996":"1iotxx1DS76Vnfg1a3fBwnZYBqpbBfdEk"},"54":{"1993":"1hKPvILhtmunX1dToN4RJeieLPnvflIJy","1995":"12hzwED89jqRWTUAaqCJyWNsCS0gR6wJg","1996":"1i7A6vHPAY4ZPeVHgijA2EBaW8ugDqWXB"},"55":{"1993":"1_KWLNCn3Z2sfkRbWn8JlGmpaFUhb0q5I","1995":"1WszuphnxrWqwXcQFpyJVH-Hz_6BkcAEn","1996":"1RgrSG37sDxPA1o9j76ENhEWQtsI059HH"},"52":{"1993":"1Osld8fmjYEOpx59PkfVpeI9UUbQ4Rfs7","1995":"10Mcp1_izHcgEkkGpmyQmhDFr3pJyWAIe","1996":"19dRgNIeym_qgVrZE_FcQWzn4If8aEMyE"},"50":{"1993":"1Kt-EK8rsr21vI_EhwiR1j1OBwduaY_-K","1995":"1XJZNfT-53-M1aurCnQXmcL5EQ7wQGqYk","1996":"1EN9ukjctYmR29nFgcjHvlL599Sn8DQk2"},"41":{"1993":"1yfrhmsB1yncwFnABa5vyp34Xzac10-T2","1995":"1lYVfjx2LAAEJBJk8Ul-lpbJPPx5DhqPg","1996":"1l9cm5WfN7EbsACMPdpPgiUWD1LNdBXNJ"},"49":{"1993":"10i8Heex4UwoJutj4IzO9_WWWVkofORwP","1995":"1YoGpnG1XuQUH26M846Fm16JGO7X8K1BF","1996":"1vXxo2PpB45PBp1Nd63PejSVJGg7I3Q-f"},"53":{"1993":"1t04R_mdI-esX0LhRQzV7oobo_I8ULAbZ","1995":"1txG-Tb2rztBZ_kcALmKFGsi_AIOKjeip","1996":"1mGLY5Uj63qjSRHHa9V1gA9q4zVh3ivDV"},"51":{"1993":"1cE9GHZUjLSyIzkzgYq0NbGTg_c5i-lTP","1995":"1HbbkeKqLByXYJSUn0BNWPfphxMRm-2IN","1996":"1AUWRcFd_VRj7OPPzzwNEZP6atzCEUFf2"},"48":{"1993":"1YHCSyAqkWu7_MNMuOJOh96-Zdp3xsXaR","1995":"1-B1DNz5ztxEbdwycvWb30s37R8suHewQ","1996":"1mUPNNfVApDVvpHpZ8PsvgUY-drKD7nWE"},"47":{"1993":"1Iibu0m_bWWq-K1zvFT1TLwhUI8q7D3bd","1995":"1cT73LVGBb-qCf-T3xzseG8Wis2E6bZeN","1996":"1ALYfyPnEb11eFQLD7Idz29JAgAgywWFB"},"46":{"1993":"1aPfoyAwvIkHIBm_6wosjgAXxaWMPLUxh","1995":"1EQLt8bOzdYnPDffTFeQ1vnX3pVgO3cwq","1996":"1Yhx4pScaNhhhuJxvlN2DH9zn8LZwVs0f"},"44":{"1993":"1KOhYiQfnrirpm-AkjDnjgsoeoveuroRf","1995":"1wG6o_4gjltuK7GPuYkhFMI6sblGz0KZt","1996":"1mmMZ6q8h1SSSvwThQcbqv8U8b4HgObZD"},"45":{"1993":"1ZSL6cayfAczqAwKT72IS4STqwMvOQ5p3","1995":"1qKtCEr4-lInPE_VARCbPc5zvOoMf5AxO","1996":"1HZdSEbwZ6H5oqSzOFqfTRWSInbTUUJVo"},"40":{"1993":"15ylCWfCKlqbuiv7cgoDfTjxoXUJ_T8OD","1995":"1KYZDgCu3BNjiMFkkZuonCg2fahFUw3nQ","1996":"1avVuaveuhJLB3ZOlC61rvCy8dvs-IX02"},"43":{"1993":"19kUvKTDeTZEMcGwRTZx_hoHJ7z9eOiDl","1995":"1KQcpNiRb29dz605Sg2dQ54XQIs3R9H3a","1996":"1zqR_0NSWd4J68b2ee994AyDD1leTU6_R"},"37":{"1993":"116NiscqSHTdR3MPVpUJIl5fFQFQ_5jxE","1995":"1hfmkNbprFLnBsc_yf-CJ3W9xvz31_Ago","1996":"1KqU8Y5xg8IaKA1iAWWunDf5WJzVPbmJG"},"39":{"1993":"1sB8r1hXR8VTZc6362F-YSusd3Y-GDmAB","1995":"19N_0aL8TYQ7FHEeltG3sG9SZEvkKyCb3","1996":"1m6LShDFu6dZRPejmu-Qxo6P_ZxXyHiVq"},"42":{"1993":"1U1KZwC_n0SGquFFsbM6P900e3SyvxwI-","1995":"1eezPvdGdBHx1GabA_i_mqv_kiIVhZ3m9","1996":"1EM7yHF89up27_c0g1_neH6vO4e3AUsit"},"30":{"1993":"11NwUlQKW0o5sfb9ESin4JVGO_2kWXKF7","1995":"1ybke6qQNf16BaqE0LzLuwCzdoxcIEcZg","1996":"1kXogurdDmMbFYGBed8hxPL3F5x8umdr-"},"33":{"1993":"1LIl39TlYBYbeBOPz_7OpfLdiYj_iJ62p","1995":"15Z8h3PTol7-Vt1zSS-UN-DV265uQz1Ur","1996":"1zJQihZWQZ84PxcfROR9rRZQWuwfxTdEO"},"38":{"1993":"1G0Yc9pqcNBKI_5AkYReVz_zelmizu7oD","1995":"1UUPW8wN2h79EVIIn0XHtIYhHcly0D_lK","1996":"1qCHPX8kDfKQicdJARxGfo0OJHdI8gdGO"},"35":{"1993":"1g-03R85BhgxTtoCI2cnoSDkthuHNztYh","1995":"1M7-jlhsHahqq0iSqiKT7tr9XrJdZK_KR","1996":"1jENiwvjXXKOI1u-WZc_r_uLIufCtNm9T"},"28":{"1993":"1KdgQH6PAUS6-GSUShQUZI_B3e4B6HN3E","1995":"1vBm1YwpqxHdZL60jwamDpYy0OUod-LIN","1996":"1OOW_hPR2yW4i6iHSDuZh4el_qSY1BWi9"},"36":{"1993":"1RXxC8_5hF88RQyEB2YN5Mklv7RI_SC4C","1995":"1AJLszUUap1gRig_Tu1IN7oifu_F6fHcy","1996":"1grVYbHmEb1Ude1Arxaua1nP_FvvmAA6N"},"29":{"1993":"1L9Btyq3wdjZ87nf4wHuuQDIJZ1ALmLF9","1995":"1V8fV29FBOEJ__rfRRE5MNXfbba-cLn1x","1996":"1-5xgtd5UvwB0n1EZy20czMWr_SeJW1VE"},"32":{"1993":"16Mvu_cWIO9f46zigJmoqbbnyc4p9397r","1995":"1DEYtEdbj55TsvpA5FSzRWU0GmLUktvCY","1996":"11F1vS26QLcYPPUuk7zCkcEOnmxE1GgqV"},"34":{"1993":"1K8Fs-qCMm3gl6pL5RRb2NAep-pQvLwkb","1995":"1IyKbxW4ZXf04HcPynwuCcBeAHZ6QyoTS","1996":"1q9g2FjejvicKFcOYGw1d5zjqOTUj67rd"},"31":{"1993":"1sewqeVDjYYc6tlmFS_FWa9IouC3QWiP_","1995":"1w3o5Aowuw13EfmUnO0BlyqkANn73ygX3","1996":"1MIBi8Qr61ThbQ5y9kcy7B2MWfB2eMCbi"},"26":{"1993":"1b3kvhYgp_sNKtM2aum_yuL7S3x5Xc3rq","1995":"1Haw1cjHPtZqL-30_trfNxVzLKWD2BpG0","1996":"1MinFDMHtrUxmcCPhH3U-DE_pWawil3E4"},"17":{"1993":"1nb_y2DXoE7o83gQh34w0cehTqE70W67s","1995":"1SfmySUP3ceQiJB3TRutQlYe94RnAXjEA","1996":"1J1Sjwjd7tXsbExSKdpsIMI5aPPWxBkWL"},"27":{"1993":"1i8C6P4upp7pJkuZklLxN-RNCUQrTZ1u1","1995":"1bnkmNERq4Xc69T6t0T7dDJ49CVu-xacu","1996":"1Nyspa8dzFEwIz2p0EL9cZD5xfPuSM0qn"},"25":{"1993":"1vj1E3r5_dLtm9jnMo3kbP6HSOvoD98_Q","1995":"1wVqZsBYRZtrOEh1XwBfBxn-l-BF5Eh2Y","1996":"11LzlLkv6kniuK_3q3kH5cD2ytTq34-Ky"},"22":{"1993":"1YvWl_YNwTfwcloyRwkIglJi42cFs_63p","1995":"1onTidKZ3nwJFsdW36noKwO7nn2hcTDBT","1996":"1y9ozoD6_8w4Y1T8r-oBUMwjXoIDNFq8W"},"23":{"1993":"1nFTO3KBToQp3bxWlZQUzKZiTQQYr_15J","1995":"1Hr1LV1RyXn7iVKdzaTDFkbbsLIf0mEpn","1996":"1jxZ6Mn0tsZ-9-W8kStvlvTHMCDQWqAP7"},"21":{"1993":"1oN0xucS_G5fAc2rry3LrpYTumVqVdjbm","1995":"1If4k02RL59xuADbN8D1kFocedxdQTyG5","1996":"1dt_ceC1e5L-jOP41UD6B_-yuLCnChRB7"},"18":{"1993":"1NCN_a_0oXAeT2XXGvn_ns-9jjhVkdEDs","1995":"1oYClYUeD806xqDWTyktdeqEK-BhUhew8","1996":"1Jvrqb9GsexpQZ0RhydLenl0daZYmDiIL"},"19":{"1993":"1eQTwlQf91vKQcUMQ2UY3TYm4Fg4uJKtC","1995":"1CRruzuVwFBzqk6par0KTzbwPEFIT7gy_","1996":"1GKKhfZ7Zh-4RpUTE-NRWYEPIxq9FTO5-"},"20":{"1993":"1XMj2IxQLNMB6J9EoF0qjE2CxY01o16Pn","1995":"1YJy5YiiHg-k9GTgQaRCh4Ow-6c9IXmd4","1996":"1apVFKjaZIDRGXFhIdk4q626bEgKUoTeR"},"15":{"1993":"1lFT3oKhxwBvIp1IuLnIWJWrdlF_QaKys","1995":"1-5BuB2LIp39vIt41bJocE75EIvgNQqFJ","1996":"1yeMjngxsALWVzmKJcGluuJ5sYSy7JyFV"},"16":{"1993":"1vjsit13n2fi5gCJcb7m8L1R4rbt8u9wx","1995":"1JLjcTYoIl7uFWPgecTwuoDbAs1KepktC","1996":"1cajwTzKHDO5h2ZjzIIt6sXdiwZtB_dX-"},"13":{"1993":"1JwKMzaJsIK-D8WRcWmKDP2Zb52qHbDJk","1995":"186Zfd-g2JwRHkIe-oXxEP84hcEKUYcNE","1996":"1rx2v87uWh49SoJtNE-t1-mqZYNo8ZVCw"},"14":{"1993":"1Q250hv9IEHYJwCiGO1zTyCkQwJWdKsHQ","1995":"1T0QMZNJYAUh51136xpSy9lDh2nR_pCnE","1996":"1CjU1xLDbMLVOFyd1D9dAufTp4HUVYrYe"},"11":{"1993":"1XhChZxgV8n5JqGBvbVcPO9cHWspIEQmW","1995":"1GrurdNsYPY9dV65_hB2QseSxf-ad9Lix","1996":"1_IeA-KyVJScy6XZT75kYLDRXrO4A-wUe"},"12":{"1993":"1u46xHonqe5OKJTRxZbXShqKZUMwmCGxv","1995":"1meU8QIRDRP2LAzP5OgQfRRIf34DK3aAh","1996":"1Vhv63HE3ae81D_tE8MN7aTm9GBY3kRi0"},"5":{"1993":"1vCUS38k5u3hoBIPlqCSa7UEDjGVZOVkH","1995":"1RsWHTBePzu2ePxJZVdXMXZxBUZH5UZru","1996":"18YF7T6Citq-tOJBtG-q1giwE4_p4x5pa"},"10":{"1993":"1VQhu8LdaxAcYqdRBsvefCI_c-lgOhZSV","1995":"1yscKix9mVLGI2TNeMQHQefgZFiMb1fZB","1996":"1yMPCBJ7uggvqj1VMSXyIBcdxv_aSuHok"},"9":{"1993":"1TtfwYv62KQe_fKXze86w7myD-6jCJsuo","1995":"1hXv32ISzSs6LWFIwW-vNpyK0O4JQPJbF","1996":"1HyE4Ww1wIVBlDA4B-FqOB9dGyM_Z2TfY"},"8":{"1993":"1AzFmxH6Cv7kW7qdaTPebtL7w7TGkBVTB","1995":"1OCu1m88z1AfmqtCzm38thLtl25G4FjAF","1996":"1CrwadNVJtTZYTpeeTxz-hyDe0AyNX7DU"},"6":{"1993":"1bb7V1X0Il4fn15Q13BQX6y9CINAggK8J","1995":"1V2kMVg6A6KLXzIu5YysqQExMwsWq1kUm","1996":"1CAHG7a8WP8_QZECkp6lJiNzgNAfIEnZ6"},"7":{"1993":"1npUT25Foioemgy7-nKDyKDzrFltmSZe_","1995":"1Zkk12yuAOC5PfsAmlNS0DoBT2lP92rh1","1996":"1k46MPWOBVva3oqDPywK_39Kbm-cQ0Izj"}};
-
+// ── Zoom / pan ────────────────────────────────────────────────────────────────
 let currentSiteId=null,currentYear="1993";
+let imgScale=1,imgX=0,imgY=0;
+let isDragging=false,dragStartX=0,dragStartY=0,dragOriginX=0,dragOriginY=0;
+const MIN_SCALE=0.1,MAX_SCALE=8,ZOOM_STEP=0.4;
+
+function applyTransform(){
+  const img=document.getElementById('site-image');
+  img.style.transform=`translate(${imgX}px,${imgY}px) scale(${imgScale})`;
+  document.getElementById('zoom-level').textContent=Math.round(imgScale*100)+'%';
+}
+
+function centerImage(){
+  const body=document.getElementById('modal-body');
+  const img=document.getElementById('site-image');
+  const bw=body.clientWidth,bh=body.clientHeight;
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  if(iw&&ih){
+    const fit=Math.min(bw/iw,bh/ih,1);
+    imgScale=fit; imgX=(bw-iw*fit)/2; imgY=(bh-ih*fit)/2;
+  } else { imgScale=1;imgX=0;imgY=0; }
+  applyTransform();
+}
+
+function zoomImg(dir){
+  imgScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,imgScale+dir*ZOOM_STEP));
+  applyTransform();
+}
+function resetZoom(){ centerImage(); }
+
+const modalBody=document.getElementById('modal-body');
+modalBody.addEventListener('mousedown',e=>{
+  if(e.target.id!=='site-image')return;
+  isDragging=true;dragStartX=e.clientX;dragStartY=e.clientY;
+  dragOriginX=imgX;dragOriginY=imgY;
+  modalBody.classList.add('grabbing'); e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  imgX=dragOriginX+(e.clientX-dragStartX);
+  imgY=dragOriginY+(e.clientY-dragStartY);
+  applyTransform();
+});
+document.addEventListener('mouseup',()=>{isDragging=false;modalBody.classList.remove('grabbing');});
+modalBody.addEventListener('wheel',e=>{
+  e.preventDefault();
+  imgScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,imgScale+(e.deltaY>0?-ZOOM_STEP:ZOOM_STEP)));
+  applyTransform();
+},{passive:false});
 
 function openModal(siteId){
   currentSiteId=siteId;
   const site=sites.find(s=>s.id===siteId);
   document.getElementById('modal-title').textContent=`#${site.id} — ${site.name}`;
-  document.getElementById('modal-meta').textContent=
-    `${site.waterbody} · ${site.status}${site.acres!=null?' · '+site.acres+' acres':''}`;
+  document.getElementById('modal-meta').innerHTML=
+    `${site.waterbody} · ${site.status}${site.acres!=null?' · '+site.acres+' acres':''}`+centralityMetaLine(site.id);
   currentYear="1993";
   document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b.dataset.year===currentYear));
-  loadPDF();
+  loadImage();
   document.getElementById('modal-overlay').classList.add('active');
   map.closePopup();
 }
 
-function loadPDF(){
-  const frame=document.getElementById('pdf-frame');
+function loadImage(){
+  const img=document.getElementById('site-image');
   const ph=document.getElementById('image-placeholder');
-  const siteFiles=driveFiles[String(currentSiteId)];
-  if(!siteFiles||!siteFiles[currentYear]){
-    frame.style.display='none';
-    ph.innerHTML='<div class="icon">📂</div><div>No model output available for this site/year.</div>';
-    ph.style.display='block';
-    return;
-  }
-  const fileId=siteFiles[currentYear];
-  frame.style.display='none';
+  const path=`images/HeatMap_Adj_Polygon_${currentSiteId}_${currentYear}.png`;
+  img.style.display='none'; ph.style.display='block';
   ph.innerHTML='<div class="icon">⏳</div><div>Loading...</div>';
-  ph.style.display='block';
-  frame.onload=()=>{ frame.style.display='block'; ph.style.display='none'; };
-  frame.src=`https://drive.google.com/file/d/${fileId}/preview`;
+  imgScale=1;imgX=0;imgY=0;
+  img.onload=()=>{
+    img.style.transformOrigin='0 0';
+    img.style.display='block';
+    ph.style.display='none';
+    centerImage();
+  };
+  img.onerror=()=>{
+    img.style.display='none';
+    ph.innerHTML=`<div class="icon">📂</div><div>Image not found:<br><code style="font-size:0.75rem;color:#aaa">${path}</code></div>`;
+    ph.style.display='block';
+  };
+  img.src=path;
 }
 
 function closeModal(){
