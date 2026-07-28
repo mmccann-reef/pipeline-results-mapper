@@ -835,7 +835,7 @@ document.querySelectorAll('.year-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     currentYear=btn.dataset.year;
     document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b===btn));
-    if(currentSiteId!==null)loadImage();
+    if(currentSiteId!==null)loadPDF();
   });
 });
 document.getElementById('modal-close').addEventListener('click',closeModal);
