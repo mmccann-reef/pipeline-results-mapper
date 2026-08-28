@@ -581,8 +581,8 @@ function scoreBar(label,score){
 }
 
 const map=L.map('map',{center:[40.72,-73.92],zoom:10});
-L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',{
-  attribution:'© Stadia Maps © OpenMapTiles © OpenStreetMap contributors',maxZoom:20
+L.tileLayer('https://tiles.openfreemap.org/styles/dark/{z}/{x}/{y}.png',{
+  attribution:'© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors',maxZoom:20
 }).addTo(map);
 
 const erosionLayer=L.geoJSON(erosionData,{
