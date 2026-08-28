@@ -213,9 +213,7 @@
       <select id="heatmap-metric" onchange="onHeatmapMetricChange()" disabled title="Metric to color markers by">
         <option value="ind">In-degree</option>
         <option value="outd">Out-degree</option>
-        <option value="evc" selected>EVC</option>
-        <option value="evcw">EVC (w/self)</option>
-        <option value="alpha">Alpha centrality</option>
+        <option value="alpha" selected>Alpha centrality</option>
         <option value="pr">PageRank</option>
       </select>
     </div>
@@ -256,7 +254,7 @@
     <div class="legend-row"><div class="legend-dot-s" style="background:#1a9850"></div> &lt; 0.05 (Low)</div>
   </div>
   <div class="map-legend" id="legend-heatmap">
-    <h4 id="hm-title">EVC (mean)</h4>
+    <h4 id="hm-title">Alpha centrality (mean)</h4>
     <div class="hm-gradient"></div>
     <div class="hm-scale"><span>0</span><span id="hm-max">1.0</span></div>
     <div class="legend-row" style="margin-top:7px"><div class="legend-dot-s" style="background:#555"></div> Excluded (wild source)</div>
